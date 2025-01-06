@@ -1,7 +1,7 @@
 import { Point, Geometry, CoordinateSystem } from '../../base/Point';
 import { GeometryCollection } from '../../collection/GeometryCollection';
-import { MultiPolyline } from '../../collection/LinearRing';
 import { MultiPolygon } from '../../collection/MultiPolygon';
+import { MultiPolyline } from '../../collection/MultiPolyline';
 import { Polygon } from '../../primitive/Polygon';
 import { Polyline } from '../../primitive/Polyline';
 

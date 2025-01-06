@@ -44,7 +44,7 @@ class MultiPolyline implements Geometry {
 
     // Check that all polylines have the same coordinate system
     const firstCs = polylines[0].getPoints()[0].getCoordinateSystem();
-    const invalidCs = polylines.some(line => 
+    const invalidCs = polylines.some(line =>
       line.getPoints().some(point => point.getCoordinateSystem() !== firstCs)
     );
     if (invalidCs) {
@@ -99,7 +99,7 @@ class MultiPolyline implements Geometry {
     }
 
     // Check if all polylines match (order matters)
-    return this.polylines.every((line, index) => 
+    return this.polylines.every((line, index) =>
       line.equals(otherMulti.polylines[index])
     );
   }
@@ -185,13 +185,19 @@ class MultiPolyline implements Geometry {
   /**
    * Creates a copy of this MultiPolyline
    */
-  public clone(): MultiPolyline {
+  public clone(): Geometry {
     return new MultiPolyline(
       this.polylines.map(line => line.clone()),
       this.srid,
       this.coordinateSystem
     );
   }
+
+public contains(point: Point): boolean {
+  // Point is contained if it lies on any of the constituent polylines
+  return this.polylines.some(polyline => polyline.contains(point));
+}
+
 
   /**
    * Returns a string representation of the MultiPolyline
@@ -204,9 +210,13 @@ class MultiPolyline implements Geometry {
    * Merges polylines that share endpoints
    * @returns A new MultiPolyline with connected polylines merged
    */
+  /**
+   * Merges polylines that share endpoints
+   * @returns A new MultiPolyline with connected polylines merged
+   */
   public mergeConnected(): MultiPolyline {
     if (this.polylines.length < 2) {
-      return this.clone();
+      return this.clone() as MultiPolyline; // Cast required since clone() returns Geometry
     }
 
     const merged: Polyline[] = [];
@@ -245,6 +255,7 @@ class MultiPolyline implements Geometry {
 
     return new MultiPolyline(merged, this.srid, this.coordinateSystem);
   }
+
 }
 
 export { MultiPolyline };

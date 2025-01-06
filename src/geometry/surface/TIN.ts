@@ -31,9 +31,9 @@ class TIN implements Geometry {
     this.coordinateSystem = coordinateSystem;
     this.triangles = this.createDelaunayTriangulation(this.points);
   }
-    asWKT(): string {
-        throw new Error('Method not implemented.');
-    }
+  asWKT(): string {
+    throw new Error('Method not implemented.');
+  }
 
   private validatePoints(points: Point[]): void {
     if (points.length < 3) {
@@ -80,7 +80,7 @@ class TIN implements Geometry {
         for (let i = 0; i < 3; i++) {
           const edge: [Point, Point] = [vertices[i], vertices[(i + 1) % 3]];
           let shared = false;
-          
+
           for (const other of badTriangles) {
             if (other === triangle) continue;
             if (this.triangleContainsEdge(other, edge)) {
@@ -109,7 +109,7 @@ class TIN implements Geometry {
     const superVertices = superTriangle.getVertices();
     triangulation = triangulation.filter(triangle => {
       const vertices = triangle.getVertices();
-      return !vertices.some(v => 
+      return !vertices.some(v =>
         superVertices.some(sv => v.equals(sv))
       );
     });
@@ -151,7 +151,7 @@ class TIN implements Geometry {
       const v1 = vertices[i];
       const v2 = vertices[(i + 1) % 3];
       if ((edge[0].equals(v1) && edge[1].equals(v2)) ||
-          (edge[0].equals(v2) && edge[1].equals(v1))) {
+        (edge[0].equals(v2) && edge[1].equals(v1))) {
         return true;
       }
     }
@@ -177,7 +177,7 @@ class TIN implements Geometry {
             const ov2 = otherVertices[(l + 1) % 3];
 
             if ((v1.equals(ov1) && v2.equals(ov2)) ||
-                (v1.equals(ov2) && v2.equals(ov1))) {
+              (v1.equals(ov2) && v2.equals(ov1))) {
               triangle.setNeighbor(k, other);
               other.setNeighbor(l, triangle);
             }
@@ -350,20 +350,20 @@ class TIN implements Geometry {
     }
 
     const [v1, v2, v3] = triangle.getVertices();
-    
+
     // Calculate normal vector using cross product
     const ux = v2.getX() - v1.getX();
     const uy = v2.getY() - v1.getY();
     const uz = v2.getZ()! - v1.getZ()!;
-    
+
     const vx = v3.getX() - v1.getX();
     const vy = v3.getY() - v1.getY();
     const vz = v3.getZ()! - v1.getZ()!;
-    
+
     const nx = uy * vz - uz * vy;
     const ny = uz * vx - ux * vz;
     const nz = ux * vy - uy * vx;
-    
+
     // Calculate slope angle
     const length = Math.sqrt(nx * nx + ny * ny + nz * nz);
     const cosAngle = Math.abs(nz) / length;
@@ -390,7 +390,7 @@ class TIN implements Geometry {
    */
   public findPointsWithinRadius(center: Point, radius: number): Point[] {
     return this.points.filter(p => p.distanceTo(center) <= radius)
-                     .map(p => p.clone());
+      .map(p => p.clone());
   }
 
   /**
@@ -490,7 +490,7 @@ class TIN implements Geometry {
     }
 
     // Sort points by importance
-    const sortedPoints = [...this.points].sort((a, b) => 
+    const sortedPoints = [...this.points].sort((a, b) =>
       (importance.get(b) || 0) - (importance.get(a) || 0)
     );
 
@@ -499,7 +499,7 @@ class TIN implements Geometry {
     for (const point of sortedPoints) {
       const testPoints = new Set(keepPoints);
       testPoints.add(point);
-      
+
       if (this.calculateMaxError(testPoints) <= maxError) {
         keepPoints.add(point);
       }
@@ -548,6 +548,24 @@ class TIN implements Geometry {
     }
 
     return maxError;
+  }
+
+  public getCoordinateSystem(): CoordinateSystem {
+    return this.coordinateSystem;
+  }
+
+  // Change the clone method return type
+  public clone(): Geometry {
+    return new TIN(
+      this.points.map(p => p.clone()),
+      this.srid,
+      this.coordinateSystem
+    );
+  }
+
+  public contains(point: Point): boolean {
+    // A point is contained in the TIN if it's contained in any of its triangles
+    return this.triangles.some(triangle => triangle.contains(point));
   }
 }
 

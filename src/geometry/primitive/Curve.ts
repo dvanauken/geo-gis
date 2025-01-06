@@ -1,18 +1,13 @@
-import { Point, Geometry, CoordinateSystem } from '../base/Point';
+import { Point } from '../base/Point';
+import { CoordinateSystem } from '../base/CoordinateSystem';
+import { Geometry } from '../base/Geometry';
+import { ICloseable } from '../base/ICloseable';
 
 /**
- * Type representing a point with interpolation parameter
+ * Abstract base class for all curve geometries.
+ * A curve is a one-dimensional geometric object usually stored as a sequence of points.
  */
-interface ParametricPoint {
-    point: Point;
-    parameter: number; // Value between 0 and 1
-}
-
-/**
- * Abstract base class for all curve geometries
- * Represents a continuous path in coordinate space
- */
-abstract class Curve implements Geometry {
+export abstract class Curve implements Geometry, ICloseable {
     protected srid: number;
     protected readonly coordinateSystem: CoordinateSystem;
 
@@ -23,10 +18,10 @@ abstract class Curve implements Geometry {
         this.srid = srid;
         this.coordinateSystem = coordinateSystem;
     }
-    
+
     // Geometry interface implementation
-    abstract isEmpty(): boolean;
-    abstract is3D(): boolean;
+    public abstract isEmpty(): boolean;
+    public abstract is3D(): boolean;
 
     public dimension(): number {
         return 1; // Curves are 1-dimensional
@@ -43,247 +38,156 @@ abstract class Curve implements Geometry {
         this.srid = srid;
     }
 
-    abstract getGeometryType(): string;
-    abstract equals(other: Geometry): boolean;
+    public abstract getGeometryType(): string;
+    public abstract equals(other: Geometry): boolean;
+    public abstract clone(): Curve;
+    public abstract asWKT(): string;
+    
+    // ICloseable interface implementation
+    public abstract isClosed(): boolean;
 
-    // Abstract methods specific to curves
+    // Basic curve operations
     /**
-     * Gets the starting point of the curve
+     * Gets the start point of the curve.
      */
-    abstract getStartPoint(): Point;
+    public abstract getStartPoint(): Point;
 
     /**
-     * Gets the ending point of the curve
+     * Gets the end point of the curve.
      */
-    abstract getEndPoint(): Point;
+    public abstract getEndPoint(): Point;
 
     /**
-     * Gets the length of the curve
+     * Gets all points that define the curve.
      */
-    abstract getLength(): number;
+    public abstract getPoints(): Point[];
 
     /**
-     * Gets a point at a specific distance along the curve
+     * Gets the number of points in the curve.
+     */
+    public abstract getNumPoints(): number;
+
+    /**
+     * Gets the point at the specified index.
+     * @param n Index of the point
+     */
+    public abstract getPointN(n: number): Point;
+
+    /**
+     * Gets the length of the curve.
+     */
+    public abstract getLength(): number;
+
+    /**
+     * Gets a point at a specified distance along the curve.
      * @param distance Distance along the curve
-     * @returns Point at the specified distance or null if distance is invalid
+     * @returns Point at the specified distance, or null if distance is invalid
      */
-    abstract getPointAtDistance(distance: number): Point | null;
+    public abstract getPointAtDistance(distance: number): Point | null;
 
     /**
-     * Gets a point at a specific parametric value (0 to 1)
-     * @param parameter Value between 0 and 1
-     * @returns Point at the specified parameter or null if parameter is invalid
+     * Gets a point at a specified parameter value.
+     * @param parameter Parameter value between 0 and 1
+     * @returns Point at the specified parameter value, or null if parameter is invalid
      */
-    abstract getPointAtParameter(parameter: number): Point | null;
+    public abstract getPointAtParameter(parameter: number): Point | null;
 
     /**
-     * Gets the parameter value for a point on the curve
+     * Gets the parameter value for a point on the curve.
      * @param point Point to find parameter for
-     * @returns Parameter value (0 to 1) or null if point is not on curve
+     * @returns Parameter value between 0 and 1, or null if point is not on curve
      */
-    abstract getParameterAtPoint(point: Point): number | null;
+    public abstract getParameterAtPoint(point: Point): number | null;
 
     /**
-     * Tests if the curve is closed (start point equals end point)
+     * Gets the distance of a point to the curve.
+     * @param point Point to measure distance to
      */
-    abstract isClosed(): boolean;
+    public abstract getDistanceToPoint(point: Point): number;
 
     /**
-     * Gets the points that define the curve
+     * Gets the closest point on the curve to a given point.
+     * @param point Point to find closest point to
      */
-    abstract getPoints(): Point[];
+    public abstract getClosestPoint(point: Point): Point;
 
     /**
-     * Gets the distance along the curve to a given point
-     * @param point Point to measure to
-     * @returns Distance along curve or null if point is not on curve
-     */
-    getDistanceToPoint(point: Point): number | null {
-        const param = this.getParameterAtPoint(point);
-        if (param === null) {
-            return null;
-        }
-        return param * this.getLength();
-    }
-
-    /**
-     * Gets a subcurve between two parameters
+     * Gets a subcurve between two parameter values.
      * @param startParam Start parameter (0 to 1)
      * @param endParam End parameter (0 to 1)
-     * @returns New curve representing the subcurve
      */
-    abstract getSubCurve(startParam: number, endParam: number): Curve;
+    public abstract getSubCurve(startParam: number, endParam: number): Curve;
 
     /**
-     * Gets the tangent vector at a given parameter
-     * @param parameter Value between 0 and 1
-     * @returns Direction vector or null if parameter is invalid
+     * Gets the tangent vector at a parameter value.
+     * @param parameter Parameter value between 0 and 1
+     * @returns Unit tangent vector or null if parameter is invalid
      */
-    abstract getTangentAtParameter(parameter: number): Point | null;
+    public abstract getTangentAtParameter(parameter: number): Point | null;
 
     /**
-     * Gets the curvature at a given parameter
-     * @param parameter Value between 0 and 1
+     * Gets the curvature at a parameter value.
+     * @param parameter Parameter value between 0 and 1
      * @returns Curvature value or null if parameter is invalid
      */
-    abstract getCurvatureAtParameter(parameter: number): number | null;
+    public abstract getCurvatureAtParameter(parameter: number): number | null;
 
     /**
-     * Gets a series of points along the curve at regular parameter intervals
-     * @param numPoints Number of points to generate
-     */
-    getRegularPoints(numPoints: number): Point[] {
-        if (numPoints < 2) {
-            throw new Error('Number of points must be at least 2');
-        }
-
-        const points: Point[] = [];
-        for (let i = 0; i < numPoints; i++) {
-            const param = i / (numPoints - 1);
-            const point = this.getPointAtParameter(param);
-            if (point) {
-                points.push(point);
-            }
-        }
-        return points;
-    }
-
-    /**
-     * Gets a series of points along the curve at regular distance intervals
-     * @param spacing Distance between points
-     */
-    getEvenlySpacedPoints(spacing: number): Point[] {
-        if (spacing <= 0) {
-            throw new Error('Spacing must be positive');
-        }
-
-        const length = this.getLength();
-        const numPoints = Math.floor(length / spacing) + 1;
-        const points: Point[] = [];
-
-        for (let i = 0; i < numPoints; i++) {
-            const distance = i * spacing;
-            const point = this.getPointAtDistance(distance);
-            if (point) {
-                points.push(point);
-            }
-        }
-
-        // Add end point if not already included
-        const lastPoint = this.getEndPoint();
-        if (points.length > 0 && !points[points.length - 1].equals(lastPoint)) {
-            points.push(lastPoint);
-        }
-
-        return points;
-    }
-
-    /**
-     * Computes offset curve (parallel curve)
+     * Creates an offset curve.
      * @param distance Offset distance (positive for left, negative for right)
      */
-    abstract getOffsetCurve(distance: number): Curve;
+    public abstract getOffsetCurve(distance: number): Curve;
 
     /**
-     * Gets closest point on curve to a given point
-     * @param point Point to find closest point to
-     * @returns Closest point and its parameter value
+     * Reverses the direction of the curve.
      */
-    abstract getClosestPoint(point: Point): ParametricPoint;
+    public abstract reverse(): Curve;
 
     /**
-     * Tests if a point is on the curve
+     * Interpolates a point between two parameters.
+     * @param parameter1 First parameter value (0 to 1)
+     * @param parameter2 Second parameter value (0 to 1)
+     * @param t Interpolation factor (0 to 1)
+     */
+    public interpolate(parameter1: number, parameter2: number, t: number): Point | null {
+        const p1 = this.getPointAtParameter(parameter1);
+        const p2 = this.getPointAtParameter(parameter2);
+        
+        if (!p1 || !p2) return null;
+
+        return new Point(
+            p1.getX() + (p2.getX() - p1.getX()) * t,
+            p1.getY() + (p2.getY() - p1.getY()) * t,
+            p1.is3D() ? p1.getZ()! + (p2.getZ()! - p1.getZ()!) * t : undefined
+        );
+    }
+
+    /**
+     * Tests if a point lies on the curve within a tolerance.
      * @param point Point to test
      * @param tolerance Distance tolerance
      */
-    isPointOnCurve(point: Point, tolerance: number = 1e-10): boolean {
-        const closest = this.getClosestPoint(point);
-        return point.distanceTo(closest.point) <= tolerance;
-    }
-
-    /**
-     * Gets the normal vector at a given parameter
-     * Only valid for planar curves
-     * @param parameter Value between 0 and 1
-     */
-    getNormalAtParameter(parameter: number): Point | null {
-        const tangent = this.getTangentAtParameter(parameter);
-        if (!tangent) {
-            return null;
-        }
-        // Rotate tangent 90 degrees counterclockwise
-        return new Point(-tangent.getY(), tangent.getX());
-    }
-
-    /**
-     * Projects a point onto the curve
-     * @param point Point to project
-     * @returns Projected point and its parameter value
-     */
-    projectPoint(point: Point): ParametricPoint {
-        return this.getClosestPoint(point);
+    public isPointOnCurve(point: Point, tolerance: number = 1e-10): boolean {
+        return this.getDistanceToPoint(point) <= tolerance;
     }
 
     /**
      * Gets the coordinate system type
      */
-    getCoordinateSystem(): CoordinateSystem {
+    public getCoordinateSystem(): CoordinateSystem {
         return this.coordinateSystem;
+    }
+
+    /**
+     * Tests if this curve contains a point
+     */
+    public contains(point: Point): boolean {
+        return this.isPointOnCurve(point);
     }
 
     /**
      * Validates the curve geometry
      * @returns Array of validation errors, empty if valid
      */
-    abstract validate(): string[];
-
-    /**
-     * Smooths the curve using a specified algorithm
-     * @param tolerance Smoothing tolerance
-     */
-    abstract smooth(tolerance: number): Curve;
-
-    /**
-     * Splits the curve at specified parameters
-     * @param parameters Array of parameter values (0 to 1)
-     * @returns Array of subcurves
-     */
-    split(parameters: number[]): Curve[] {
-        if (parameters.length === 0) {
-            return [this];
-        }
-
-        // Sort and validate parameters
-        const sortedParams = [...new Set(parameters)]
-            .filter(p => p > 0 && p < 1)
-            .sort((a, b) => a - b);
-
-        // Add start and end parameters
-        const allParams = [0, ...sortedParams, 1];
-
-        // Create subcurves
-        const curves: Curve[] = [];
-        for (let i = 0; i < allParams.length - 1; i++) {
-            curves.push(this.getSubCurve(allParams[i], allParams[i + 1]));
-        }
-
-        return curves;
-    }
-
-    /**
-     * Reverses the direction of the curve
-     */
-    abstract reverse(): Curve;
-
-    /**
-     * Creates a deep copy of the curve
-     */
-    abstract clone(): Curve;
-
-    asWKT(): string {
-        throw new Error('Method not implemented.');
-    }
-
+    public abstract validate(): string[];
 }
-
-export { Curve, ParametricPoint };

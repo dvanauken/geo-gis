@@ -239,6 +239,15 @@ abstract class Surface implements Geometry {
     };
   }
 
+
+  /**
+ * Tests if a point lies on the surface
+ * @param point Point to test
+ * @returns true if point lies on surface, false otherwise
+ */
+  public abstract contains(point: Point): boolean;
+
+
   /**
    * Creates a deep copy of the surface
    */
@@ -246,7 +255,7 @@ abstract class Surface implements Geometry {
 
   asWKT(): string {
     throw new Error('Method not implemented.');
-}
+  }
 
 }
 

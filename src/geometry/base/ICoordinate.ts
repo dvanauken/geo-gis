@@ -9,5 +9,6 @@ export interface ICoordinate {
     equals(other: ICoordinate): boolean;
     clone(): ICoordinate;
     toString(): string;
+    getM?(): number;
   }
   

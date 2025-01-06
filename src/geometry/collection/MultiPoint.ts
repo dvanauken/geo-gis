@@ -27,31 +27,27 @@ class MultiPoint implements Geometry {
     this.coordinateSystem = coordinateSystem;
   }
 
-  private validatePoints(points: Point[]): void {
-    // Check coordinate system consistency
-    if (points.length > 0) {
+// In MultiPoint.ts, modify validatePoints():
+private validatePoints(points: Point[]): void {
+  if (points.length > 0) {
       const firstCs = points[0].getCoordinateSystem();
       if (!points.every(p => p.getCoordinateSystem() === firstCs)) {
-        throw new Error('All points must have the same coordinate system');
+          throw new Error('All points must have the same coordinate system');
       }
 
       // Check dimensionality consistency
       const firstIs3D = points[0].is3D();
       if (!points.every(p => p.is3D() === firstIs3D)) {
-        throw new Error('All points must be consistently 2D or 3D');
+          throw new Error('All points must be consistently 2D or 3D');
       }
 
       // Check measure consistency
-      const firstHasM = 'getM' in points[0] && points[0].getM() !== undefined;
-      if (!points.every(p => {
-        const hasM = 'getM' in p && p.getM() !== undefined;
-        return hasM === firstHasM;
-      })) {
-        throw new Error('All points must consistently have or not have measures');
+      const firstHasM = points[0].hasM();
+      if (!points.every(p => p.hasM() === firstHasM)) {
+          throw new Error('All points must consistently have or not have measures');
       }
-    }
   }
-
+}
   // Geometry interface implementation
   public isEmpty(): boolean {
     return this.points.length === 0;
@@ -291,6 +287,12 @@ class MultiPoint implements Geometry {
   public toString(): string {
     return this.asWKT();
   }
+
+  public contains(point: Point): boolean {
+    // A point is contained if it equals any point in the collection
+    return this.points.some(p => p.equals(point));
+}
+
 }
 
 export { MultiPoint };

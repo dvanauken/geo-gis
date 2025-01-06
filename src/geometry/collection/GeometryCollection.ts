@@ -3,8 +3,8 @@ import { Geometry } from "../base/Geometry";
 import { Point } from "../base/Point";
 import { Polygon } from "../primitive/Polygon";
 import { Polyline } from "../primitive/Polyline";
-import { MultiPolyline } from "./LinearRing";
 import { MultiPolygon } from "./MultiPolygon";
+import { MultiPolyline } from "./MultiPolyline";
 
 /**
  * Implementation of OpenGIS GeometryCollection
@@ -50,7 +50,7 @@ class GeometryCollection implements Geometry {
       if (geom instanceof Point) {
         return geom.getCoordinateSystem();
       } else if (geom instanceof Polyline || geom instanceof Polygon ||
-                 geom instanceof MultiPolyline || geom instanceof MultiPolygon) {
+        geom instanceof MultiPolyline || geom instanceof MultiPolygon) {
         return geom.getCoordinateSystem();
       } else if (geom instanceof GeometryCollection) {
         return geom.getCoordinateSystem();
@@ -117,7 +117,7 @@ class GeometryCollection implements Geometry {
     }
 
     // Check if all geometries match (order matters)
-    return this.geometries.every((geom, index) => 
+    return this.geometries.every((geom, index) =>
       geom.equals(otherCollection.geometries[index])
     );
   }
@@ -205,7 +205,7 @@ class GeometryCollection implements Geometry {
    */
   public flatten(): GeometryCollection {
     const flattenedGeometries: Geometry[] = [];
-    
+
     const flatten = (geom: Geometry) => {
       if (geom instanceof GeometryCollection) {
         geom.getGeometries().forEach(g => flatten(g));
@@ -215,7 +215,7 @@ class GeometryCollection implements Geometry {
     };
 
     this.geometries.forEach(geom => flatten(geom));
-    
+
     return new GeometryCollection(
       flattenedGeometries,
       this.srid,
@@ -261,7 +261,7 @@ class GeometryCollection implements Geometry {
    */
   public getAllPoints(): Point[] {
     const points: Point[] = [];
-    
+
     const collectPoints = (geom: Geometry) => {
       if (geom instanceof Point) {
         points.push(geom.clone());
@@ -269,7 +269,7 @@ class GeometryCollection implements Geometry {
         points.push(...geom.getPoints());
       } else if (geom instanceof Polygon) {
         points.push(...geom.getExteriorRing().getPoints());
-        geom.getInteriorRings().forEach(ring => 
+        geom.getInteriorRings().forEach(ring =>
           points.push(...ring.getPoints())
         );
       } else if (geom instanceof MultiPolyline) {
@@ -277,7 +277,7 @@ class GeometryCollection implements Geometry {
       } else if (geom instanceof MultiPolygon) {
         geom.getPolygons().forEach(poly => {
           points.push(...poly.getExteriorRing().getPoints());
-          poly.getInteriorRings().forEach(ring => 
+          poly.getInteriorRings().forEach(ring =>
             points.push(...ring.getPoints())
           );
         });
@@ -289,6 +289,47 @@ class GeometryCollection implements Geometry {
     this.geometries.forEach(geom => collectPoints(geom));
     return points;
   }
+
+  public contains(point: Point): boolean {
+    // Check if point lies on any line segment
+    const points = this.getAllPoints();
+    for (let i = 0; i < points.length - 1; i++) {
+      const p1 = points[i];
+      const p2 = points[i + 1];
+
+      // Vector from p1 to p2
+      const dx = p2.getX() - p1.getX();
+      const dy = p2.getY() - p1.getY();
+      const length = Math.sqrt(dx * dx + dy * dy);
+
+      if (length === 0) {
+        // If segment is degenerate, check if point equals p1
+        if (point.equals(p1)) return true;
+        continue;
+      }
+
+      // Parameter along the line segment
+      const t = ((point.getX() - p1.getX()) * dx + (point.getY() - p1.getY()) * dy) / (length * length);
+
+      // Point must lie between start and end of segment (0 <= t <= 1)
+      if (t < 0 || t > 1) continue;
+
+      // Calculate projection point
+      const projX = p1.getX() + t * dx;
+      const projY = p1.getY() + t * dy;
+
+      // Check if point is close enough to projection (allowing for small numerical errors)
+      const EPSILON = 1e-10;
+      if (Math.abs(point.getX() - projX) < EPSILON &&
+        Math.abs(point.getY() - projY) < EPSILON) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+
+
 }
 
 export { GeometryCollection };

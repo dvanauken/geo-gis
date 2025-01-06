@@ -54,7 +54,7 @@ class IntersectsPredicate extends GeometricPredicate {
     } else if (this.geometry2 instanceof Polygon) {
       return this.geometry2.contains(point);
     } else if (this.geometry2 instanceof GeometryCollection) {
-      return this.geometry2.getGeometries().some(g => 
+      return this.geometry2.getGeometries().some(g =>
         new IntersectsPredicate(point, g).evaluate()
       );
     }
@@ -69,7 +69,7 @@ class IntersectsPredicate extends GeometricPredicate {
     } else if (this.geometry2 instanceof Polygon) {
       return this.polylineIntersectsPolygon(line, this.geometry2);
     } else if (this.geometry2 instanceof GeometryCollection) {
-      return this.geometry2.getGeometries().some(g => 
+      return this.geometry2.getGeometries().some(g =>
         new IntersectsPredicate(line, g).evaluate()
       );
     }
@@ -84,7 +84,7 @@ class IntersectsPredicate extends GeometricPredicate {
     } else if (this.geometry2 instanceof Polygon) {
       return this.polygonIntersectsPolygon(polygon, this.geometry2);
     } else if (this.geometry2 instanceof GeometryCollection) {
-      return this.geometry2.getGeometries().some(g => 
+      return this.geometry2.getGeometries().some(g =>
         new IntersectsPredicate(polygon, g).evaluate()
       );
     }
@@ -92,7 +92,7 @@ class IntersectsPredicate extends GeometricPredicate {
   }
 
   private collectionIntersects(collection: GeometryCollection): boolean {
-    return collection.getGeometries().some(g => 
+    return collection.getGeometries().some(g =>
       new IntersectsPredicate(g, this.geometry2).evaluate()
     );
   }
@@ -137,7 +137,7 @@ class IntersectsPredicate extends GeometricPredicate {
     }
 
     // Check interior rings
-    return polygon.getInteriorRings().some(ring => 
+    return polygon.getInteriorRings().some(ring =>
       this.polylineIntersectsPolyline(line, ring)
     );
   }
@@ -145,7 +145,7 @@ class IntersectsPredicate extends GeometricPredicate {
   private polygonIntersectsPolygon(poly1: Polygon, poly2: Polygon): boolean {
     // Check if any vertex of one polygon is inside the other
     if (poly1.getExteriorRing().getPoints().some(p => poly2.contains(p)) ||
-        poly2.getExteriorRing().getPoints().some(p => poly1.contains(p))) {
+      poly2.getExteriorRing().getPoints().some(p => poly1.contains(p))) {
       return true;
     }
 
@@ -160,13 +160,13 @@ class IntersectsPredicate extends GeometricPredicate {
     const dx = end.getX() - start.getX();
     const dy = end.getY() - start.getY();
     const length = Math.sqrt(dx * dx + dy * dy);
-    
+
     if (length < this.EPSILON) {
       return point.equals(start);
     }
 
-    const t = ((point.getX() - start.getX()) * dx + 
-               (point.getY() - start.getY()) * dy) / (length * length);
+    const t = ((point.getX() - start.getX()) * dx +
+      (point.getY() - start.getY()) * dy) / (length * length);
 
     if (t < -this.EPSILON || t > 1 + this.EPSILON) {
       return false;
@@ -176,7 +176,7 @@ class IntersectsPredicate extends GeometricPredicate {
     const projY = start.getY() + t * dy;
 
     return Math.abs(point.getX() - projX) < this.EPSILON &&
-           Math.abs(point.getY() - projY) < this.EPSILON;
+      Math.abs(point.getY() - projY) < this.EPSILON;
   }
 
   private lineSegmentsIntersect(
@@ -190,14 +190,14 @@ class IntersectsPredicate extends GeometricPredicate {
     const [minY2, maxY2] = this.minMax(p3.getY(), p4.getY());
 
     if (maxX1 < minX2 - this.EPSILON || minX1 > maxX2 + this.EPSILON ||
-        maxY1 < minY2 - this.EPSILON || minY1 > maxY2 + this.EPSILON) {
+      maxY1 < minY2 - this.EPSILON || minY1 > maxY2 + this.EPSILON) {
       return false;
     }
 
     // Cross product method
     const ccw = (A: Point, B: Point, C: Point): number => {
       return (C.getY() - A.getY()) * (B.getX() - A.getX()) -
-             (B.getY() - A.getY()) * (C.getX() - A.getX());
+        (B.getY() - A.getY()) * (C.getX() - A.getX());
     };
 
     const ccw1 = ccw(p1, p2, p3);
@@ -206,8 +206,8 @@ class IntersectsPredicate extends GeometricPredicate {
     const ccw4 = ccw(p3, p4, p2);
 
     return (ccw1 * ccw2 < -this.EPSILON && ccw3 * ccw4 < -this.EPSILON) ||
-           Math.abs(ccw1) < this.EPSILON || Math.abs(ccw2) < this.EPSILON ||
-           Math.abs(ccw3) < this.EPSILON || Math.abs(ccw4) < this.EPSILON;
+      Math.abs(ccw1) < this.EPSILON || Math.abs(ccw2) < this.EPSILON ||
+      Math.abs(ccw3) < this.EPSILON || Math.abs(ccw4) < this.EPSILON;
   }
 
   private minMax(a: number, b: number): [number, number] {
@@ -268,9 +268,9 @@ class EqualsPredicate extends GeometricPredicate {
 
   private pointEquals(p1: Point, p2: Point): boolean {
     return Math.abs(p1.getX() - p2.getX()) < this.EPSILON &&
-           Math.abs(p1.getY() - p2.getY()) < this.EPSILON &&
-           ((!p1.is3D() && !p2.is3D()) ||
-            Math.abs(p1.getZ()! - p2.getZ()!) < this.EPSILON);
+      Math.abs(p1.getY() - p2.getY()) < this.EPSILON &&
+      ((!p1.is3D() && !p2.is3D()) ||
+        Math.abs(p1.getZ()! - p2.getZ()!) < this.EPSILON);
   }
 
   private polylineEquals(line1: Polyline, line2: Polyline): boolean {
@@ -303,7 +303,7 @@ class EqualsPredicate extends GeometricPredicate {
 
     // Note: This assumes rings are in the same order
     // A more robust implementation would check all possible matchings
-    return rings1.every((ring, i) => 
+    return rings1.every((ring, i) =>
       this.polylineEquals(ring, rings2[i])
     );
   }
@@ -321,7 +321,7 @@ class EqualsPredicate extends GeometricPredicate {
 
     // Note: This assumes geometries are in the same order
     // A more robust implementation would check all possible matchings
-    return geoms1.every((geom, i) => 
+    return geoms1.every((geom, i) =>
       new EqualsPredicate(geom, geoms2[i]).evaluate()
     );
   }
@@ -337,18 +337,27 @@ class TouchesPredicate extends GeometricPredicate {
     if (this.geometry1 instanceof Point || this.geometry2 instanceof Point) {
       return this.evaluateWithPoint();
     }
-    
+
     return this.boundariesIntersect() && !this.interiorsIntersect();
   }
 
   private evaluateWithPoint(): boolean {
-    const point = this.geometry1 instanceof Point ? this.geometry1 : this.geometry2;
-    const other = this.geometry1 instanceof Point ? this.geometry2 : this.geometry1;
-
-    if (other instanceof Polyline) {
-      return this.pointOnPolylineBoundary(point, other);
-    } else if (other instanceof Polygon) {
-      return this.pointOnPolygonBoundary(point, other);
+    if (this.geometry1 instanceof Point) {
+      const point = this.geometry1;
+      const other = this.geometry2;
+      if (other instanceof Polyline) {
+        return this.pointOnPolylineBoundary(point, other);
+      } else if (other instanceof Polygon) {
+        return this.pointOnPolygonBoundary(point, other);
+      }
+    } else if (this.geometry2 instanceof Point) {
+      const point = this.geometry2;
+      const other = this.geometry1;
+      if (other instanceof Polyline) {
+        return this.pointOnPolylineBoundary(point, other);
+      } else if (other instanceof Polygon) {
+        return this.pointOnPolygonBoundary(point, other);
+      }
     }
     return false;
   }
@@ -356,9 +365,9 @@ class TouchesPredicate extends GeometricPredicate {
   private pointOnPolylineBoundary(point: Point, line: Polyline): boolean {
     const points = line.getPoints();
     return point.equals(points[0]) || point.equals(points[points.length - 1]) ||
-           points.some((p, i) => 
-             i < points.length - 1 && this.pointOnLineSegment(point, p, points[i + 1])
-           );
+      points.some((p, i) =>
+        i < points.length - 1 && this.pointOnLineSegment(point, p, points[i + 1])
+      );
   }
 
   private pointOnPolygonBoundary(point: Point, polygon: Polygon): boolean {
@@ -366,7 +375,7 @@ class TouchesPredicate extends GeometricPredicate {
     if (this.pointOnPolylineBoundary(point, exterior)) {
       return true;
     }
-    return polygon.getInteriorRings().some(ring => 
+    return polygon.getInteriorRings().some(ring =>
       this.pointOnPolylineBoundary(point, ring)
     );
   }
@@ -375,13 +384,13 @@ class TouchesPredicate extends GeometricPredicate {
     const dx = end.getX() - start.getX();
     const dy = end.getY() - start.getY();
     const length = Math.sqrt(dx * dx + dy * dy);
-    
+
     if (length < this.EPSILON) {
       return point.equals(start);
     }
 
-    const t = ((point.getX() - start.getX()) * dx + 
-               (point.getY() - start.getY()) * dy) / (length * length);
+    const t = ((point.getX() - start.getX()) * dx +
+      (point.getY() - start.getY()) * dy) / (length * length);
 
     if (t < -this.EPSILON || t > 1 + this.EPSILON) {
       return false;
@@ -391,14 +400,14 @@ class TouchesPredicate extends GeometricPredicate {
     const projY = start.getY() + t * dy;
 
     return Math.abs(point.getX() - projX) < this.EPSILON &&
-           Math.abs(point.getY() - projY) < this.EPSILON;
+      Math.abs(point.getY() - projY) < this.EPSILON;
   }
 
   private boundariesIntersect(): boolean {
     // Get boundaries of both geometries
     const boundary1 = this.getBoundary(this.geometry1);
     const boundary2 = this.getBoundary(this.geometry2);
-    
+
     return new IntersectsPredicate(boundary1, boundary2).evaluate();
   }
 
@@ -415,7 +424,7 @@ class TouchesPredicate extends GeometricPredicate {
     // Check if any interior point of one polygon is inside the other
     const interiorPoint1 = this.getInteriorPoint(poly1);
     const interiorPoint2 = this.getInteriorPoint(poly2);
-    
+
     return poly2.contains(interiorPoint1) || poly1.contains(interiorPoint2);
   }
 
@@ -468,8 +477,8 @@ class OverlapsPredicate extends GeometricPredicate {
     }
 
     return !new EqualsPredicate(this.geometry1, this.geometry2).evaluate() &&
-           !new ContainsPredicate(this.geometry1, this.geometry2).evaluate() &&
-           !new ContainsPredicate(this.geometry2, this.geometry1).evaluate();
+      !new ContainsPredicate(this.geometry1, this.geometry2).evaluate() &&
+      !new ContainsPredicate(this.geometry2, this.geometry1).evaluate();
   }
 }
 
@@ -532,7 +541,7 @@ class GeometricPredicates {
    */
   static covers(geometry1: Geometry, geometry2: Geometry): boolean {
     return GeometricPredicates.contains(geometry1, geometry2) ||
-           GeometricPredicates.touches(geometry1, geometry2);
+      GeometricPredicates.touches(geometry1, geometry2);
   }
 
   /**

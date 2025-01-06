@@ -36,7 +36,7 @@ class Polyline implements Geometry {
     if (!Array.isArray(points)) {
       throw new Error('Points must be provided as an array');
     }
-    
+
     if (points.length < 2) {
       throw new Error('A Polyline must contain at least 2 points');
     }
@@ -92,7 +92,7 @@ class Polyline implements Geometry {
       return false;
     }
 
-    return this.points.every((point, index) => 
+    return this.points.every((point, index) =>
       point.equals(otherLine.points[index])
     );
   }
@@ -178,7 +178,7 @@ class Polyline implements Geometry {
       const p2 = this.points[i + 1];
 
       if (this.coordinateSystem === CoordinateSystem.GEOGRAPHIC_2D ||
-          this.coordinateSystem === CoordinateSystem.GEOGRAPHIC_3D) {
+        this.coordinateSystem === CoordinateSystem.GEOGRAPHIC_3D) {
         length += p1.greatCircleDistance(p2);
       } else {
         length += p1.distanceTo(p2);
@@ -216,6 +216,48 @@ class Polyline implements Geometry {
   public toString(): string {
     return this.asWKT();
   }
+
+  getCoordinateSystem(): CoordinateSystem {
+    return this.coordinateSystem;
+  }
+
+  public contains(point: Point): boolean {
+    const points = this.getPoints();
+    for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        
+        // Vector from p1 to p2
+        const dx = p2.getX() - p1.getX();
+        const dy = p2.getY() - p1.getY();
+        const length = Math.sqrt(dx * dx + dy * dy);
+
+        if (length === 0) {
+            // If segment is degenerate, check if point equals p1
+            if (point.equals(p1)) return true;
+            continue;
+        }
+
+        // Parameter along the line segment
+        const t = ((point.getX() - p1.getX()) * dx + (point.getY() - p1.getY()) * dy) / (length * length);
+
+        // Point must lie between start and end of segment (0 <= t <= 1)
+        if (t < 0 || t > 1) continue;
+
+        // Calculate projection point
+        const projX = p1.getX() + t * dx;
+        const projY = p1.getY() + t * dy;
+
+        // Check if point is close enough to projection
+        const EPSILON = 1e-10;
+        if (Math.abs(point.getX() - projX) < EPSILON && 
+            Math.abs(point.getY() - projY) < EPSILON) {
+            return true;
+        }
+    }
+    return false;
+}
+
 }
 
 export { Polyline };

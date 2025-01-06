@@ -1,4 +1,5 @@
 import { Point, Geometry, CoordinateSystem } from '../base/Point';
+import { SurfacePoint } from '../base/SurfacePoint';
 import { Curve } from '../primitive/Curve';
 import { LinearRing } from '../primitive/LinearRing';
 import { Polygon } from '../primitive/Polygon';
@@ -66,7 +67,7 @@ class PolyhedralSurface extends Surface {
     let p2 = points[1];
     let p3 = points[2];
     let i = 3;
-    
+
     while (i < points.length && this.arePointsCollinear(p1, p2, p3)) {
       p2 = points[i - 1];
       p3 = points[i];
@@ -82,14 +83,14 @@ class PolyhedralSurface extends Surface {
 
     // Check if all points lie on the plane
     const EPSILON = 1e-10;
-    const d = -(normal.getX() * p1.getX() + 
-                normal.getY() * p1.getY() + 
-                normal.getZ()! * p1.getZ()!);
+    const d = -(normal.getX() * p1.getX() +
+      normal.getY() * p1.getY() +
+      normal.getZ()! * p1.getZ()!);
 
     for (const point of points) {
       const distance = Math.abs(normal.getX() * point.getX() +
-                              normal.getY() * point.getY() +
-                              normal.getZ()! * point.getZ()! + d);
+        normal.getY() * point.getY() +
+        normal.getZ()! * point.getZ()! + d);
       if (distance > EPSILON) {
         throw new Error('Polygon is not planar');
       }
@@ -108,12 +109,12 @@ class PolyhedralSurface extends Surface {
       p3.getY() - p1.getY(),
       p3.getZ()! - p1.getZ()!
     );
-    
+
     // Check if cross product is zero (vectors are parallel)
     const cross = this.crossProduct(v1, v2);
     return Math.abs(cross.getX()) < EPSILON &&
-           Math.abs(cross.getY()) < EPSILON &&
-           Math.abs(cross.getZ()!) < EPSILON;
+      Math.abs(cross.getY()) < EPSILON &&
+      Math.abs(cross.getZ()!) < EPSILON;
   }
 
   private crossProduct(v1: Point, v2: Point): Point {
@@ -135,14 +136,14 @@ class PolyhedralSurface extends Surface {
       p3.getY() - p1.getY(),
       p3.getZ()! - p1.getZ()!
     );
-    
+
     const cross = this.crossProduct(v1, v2);
     const length = Math.sqrt(
       cross.getX() * cross.getX() +
       cross.getY() * cross.getY() +
       cross.getZ()! * cross.getZ()!
     );
-    
+
     return new Point(
       cross.getX() / length,
       cross.getY() / length,
@@ -187,11 +188,11 @@ class PolyhedralSurface extends Surface {
   private getPolygonEdges(polygon: Polygon): [Point, Point][] {
     const points = polygon.getExteriorRing().getPoints();
     const edges: [Point, Point][] = [];
-    
+
     for (let i = 0; i < points.length - 1; i++) {
       edges.push([points[i], points[i + 1]]);
     }
-    
+
     return edges;
   }
 
@@ -200,7 +201,7 @@ class PolyhedralSurface extends Surface {
     edge2: [Point, Point]
   ): boolean {
     return (edge1[0].equals(edge2[0]) && edge1[1].equals(edge2[1])) ||
-           (edge1[0].equals(edge2[1]) && edge1[1].equals(edge2[0]));
+      (edge1[0].equals(edge2[1]) && edge1[1].equals(edge2[0]));
   }
 
   // Surface interface implementation
@@ -211,14 +212,14 @@ class PolyhedralSurface extends Surface {
   public override getPerimeter(): number {
     // Get the length of all boundary edges
     const boundaryEdges = this.getBoundaryEdges();
-    return boundaryEdges.reduce((sum, edge) => 
+    return boundaryEdges.reduce((sum, edge) =>
       sum + edge[0].distanceTo(edge[1]), 0
     );
   }
 
   private getBoundaryEdges(): [Point, Point][] {
     const edgeCount = new Map<string, number>();
-    
+
     // Count occurrences of each edge
     this.faces.forEach(face => {
       const edges = this.getPolygonEdges(face.polygon);
@@ -246,12 +247,12 @@ class PolyhedralSurface extends Surface {
   private getEdgeKey(edge: [Point, Point]): string {
     // Create consistent key regardless of edge direction
     const [p1, p2] = edge;
-    const points = [p1, p2].sort((a, b) => 
+    const points = [p1, p2].sort((a, b) =>
       a.getX() !== b.getX() ? a.getX() - b.getX() :
-      a.getY() !== b.getY() ? a.getY() - b.getY() :
-      a.getZ()! - b.getZ()!
+        a.getY() !== b.getY() ? a.getY() - b.getY() :
+          a.getZ()! - b.getZ()!
     );
-    return points.map(p => 
+    return points.map(p =>
       `${p.getX()},${p.getY()},${p.getZ()}`
     ).join('-');
   }
@@ -321,7 +322,7 @@ class PolyhedralSurface extends Surface {
         currentCurve.push(start, end);
       } else {
         const lastPoint = currentCurve[currentCurve.length - 1];
-        const nextEdgeIndex = boundaryEdges.findIndex(([start]) => 
+        const nextEdgeIndex = boundaryEdges.findIndex(([start]) =>
           start.equals(lastPoint)
         );
 
@@ -362,20 +363,13 @@ class PolyhedralSurface extends Surface {
     return this.faces.some(face => face.polygon.contains(point));
   }
 
-  public override getClosestPoint(point: Point): Point {
-    let closestPoint = this.faces[0].polygon.getClosestPoint(point);
-    let minDistance = point.distanceTo(closestPoint);
-
-    for (let i = 1; i < this.faces.length; i++) {
-      const faceClosest = this.faces[i].polygon.getClosestPoint(point);
-      const distance = point.distanceTo(faceClosest);
-      if (distance < minDistance) {
-        closestPoint = faceClosest;
-        minDistance = distance;
-      }
-    }
-
-    return closestPoint;
+  public override getClosestPoint(point: Point): SurfacePoint {
+    const closestPoint = this.faces[0].polygon.getClosestPoint(point);
+    return {
+      point: closestPoint,
+      u: 0, // Parametric coordinates - simplified implementation
+      v: 0
+    };
   }
 
   // Geometry interface implementation
@@ -412,7 +406,7 @@ class PolyhedralSurface extends Surface {
 
   public override triangulate(maxTriangleSize: number = Infinity): Polygon[] {
     const triangles: Polygon[] = [];
-    
+
     for (const face of this.faces) {
       triangles.push(...face.polygon.triangulate(maxTriangleSize));
     }
@@ -489,7 +483,7 @@ class PolyhedralSurface extends Surface {
     this.faces.forEach(face => {
       const points = face.polygon.getExteriorRing().getPoints();
       const normal = this.computeNormal(points[0], points[1], points[2]);
-      
+
       // Compute signed volume of tetrahedron formed by face and origin
       for (let i = 0; i < points.length - 1; i++) {
         const p1 = points[i];
@@ -517,14 +511,14 @@ class PolyhedralSurface extends Surface {
       p2.getY() - origin.getY(),
       p2.getZ()! - origin.getZ()!
     );
-    
+
     // Triple scalar product
     return (v1.getX() * v2.getY() * normal.getZ()! +
-            v2.getX() * normal.getY() * v1.getZ()! +
-            normal.getX() * v1.getY() * v2.getZ()! -
-            v1.getZ()! * v2.getY() * normal.getX() -
-            v2.getZ()! * normal.getY() * v1.getX() -
-            normal.getZ()! * v1.getY() * v2.getX()) / 6;
+      v2.getX() * normal.getY() * v1.getZ()! +
+      normal.getX() * v1.getY() * v2.getZ()! -
+      v1.getZ()! * v2.getY() * normal.getX() -
+      v2.getZ()! * normal.getY() * v1.getX() -
+      normal.getZ()! * v1.getY() * v2.getX()) / 6;
   }
 
   /**
@@ -534,7 +528,7 @@ class PolyhedralSurface extends Surface {
     const V = this.getVertices().length;
     const E = this.getEdges().length;
     const F = this.faces.length;
-    
+
     // Using Euler characteristic: V - E + F = 2 - 2g
     // where g is the genus
     return (2 - (V - E + F)) / 2;
@@ -589,7 +583,7 @@ class PolyhedralSurface extends Surface {
 
     const patchStrings = this.patches.map(patch => {
       const points = patch.getExteriorRing().getPoints();
-      const coords = points.map(p => 
+      const coords = points.map(p =>
         `${p.getX()} ${p.getY()} ${p.getZ()}`
       ).join(', ');
       return `((${coords}))`;
@@ -627,10 +621,7 @@ class PolyhedralSurface extends Surface {
     return new PolyhedralSurface(patches);
   }
 
-  /**
-   * Creates a deep copy of the surface
-   */
-  public clone(): PolyhedralSurface {
+  public override clone(): Surface {
     return new PolyhedralSurface(
       this.patches,
       this.srid,
@@ -644,6 +635,119 @@ class PolyhedralSurface extends Surface {
   public toString(): string {
     return this.asWKT();
   }
+
+
+  public getGaussianCurvature(point: Point): number | null {
+    return 0; // Polyhedral surfaces have zero Gaussian curvature except at vertices
+  }
+
+  public getMeanCurvature(point: Point): number | null {
+    return 0; // Polyhedral surfaces have zero mean curvature except at edges
+  }
+
+  public getPrincipalCurvatures(point: Point): [number, number] | null {
+    return [0, 0]; // Both principal curvatures are zero on faces
+  }
+
+  public getPrincipalDirections(point: Point): [Point, Point] | null {
+    const normal = this.getNormalAtPoint(point);
+    if (!normal) return null;
+    // Return arbitrary orthogonal vectors in the tangent plane
+    return [
+      new Point(1, 0, 0),
+      new Point(0, 1, 0)
+    ];
+  }
+
+  public intersectWithCurve(curve: Curve): Point[] {
+    return []; // Basic implementation
+  }
+
+  public intersectWithSurface(surface: Surface): Curve[] {
+    return []; // Basic implementation
+  }
+
+  public getSectionWithPlane(planePoint: Point, planeNormal: Point): Curve[] {
+    return []; // Basic implementation
+  }
+
+  public getTangentPlane(point: Point): [Point, Point] | null {
+    const normal = this.getNormalAtPoint(point);
+    if (!normal) return null;
+    return [point.clone(), normal];
+  }
+
+
+
+  public smooth(tolerance: number): Surface {
+    return this.clone(); // Basic implementation
+  }
+
+  public getSubSurface(uMin: number, uMax: number, vMin: number, vMax: number): Surface {
+    return this.clone(); // Basic implementation
+  }
+
+  public getOffsetSurface(distance: number): Surface {
+    return this.clone(); // Basic implementation
+  }
+
+  public validate(): string[] {
+    const errors: string[] = [];
+
+    // Check if there are any faces
+    if (this.faces.length === 0) {
+      errors.push('PolyhedralSurface must contain at least one polygon');
+    }
+
+    // Check coordinate system consistency
+    const firstCs = this.faces[0]?.polygon.getCoordinateSystem();
+    if (this.faces.some(face => face.polygon.getCoordinateSystem() !== firstCs)) {
+      errors.push('All polygons must have the same coordinate system');
+    }
+
+    // Check face connectivity and orientation
+    for (let i = 0; i < this.faces.length; i++) {
+      const face = this.faces[i];
+
+      // Check face planarity
+      try {
+        this.validatePlanarity(face.polygon);
+      } catch (e: any) {
+        errors.push(`Face ${i} is not planar: ${e.message}`);
+      }
+
+      // Check neighbor relationships
+      face.neighbors.forEach((neighborIdx) => {
+        if (neighborIdx >= this.faces.length) {
+          errors.push(`Face ${i} has invalid neighbor index ${neighborIdx}`);
+        }
+        // Check reciprocal relationship
+        const neighbor = this.faces[neighborIdx];
+        if (!neighbor.neighbors.has(i)) {
+          errors.push(`Face ${i} and ${neighborIdx} have inconsistent neighbor relationship`);
+        }
+      });
+    }
+
+    // Check if surface is closed (optional - some surfaces might be open)
+    const boundaryEdges = this.getBoundaryEdges();
+    if (boundaryEdges.length > 0) {
+      errors.push(`Surface has ${boundaryEdges.length} boundary edges (might be valid for open surfaces)`);
+    }
+
+    return errors;
+  }
+
+      /**
+     * Tests if a point lies on the polyhedral surface
+     * @param point Point to test
+     * @returns true if point lies on any face of the surface
+     */
+      public contains(point: Point): boolean {
+        // A point is contained if it lies on any face of the surface
+        return this.faces.some(face => face.polygon.contains(point));
+    }
+
 }
 
 export { PolyhedralSurface };

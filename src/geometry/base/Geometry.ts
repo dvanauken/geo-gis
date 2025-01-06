@@ -1,3 +1,5 @@
+import { CoordinateSystem } from "./CoordinateSystem";
+import { Point } from "./Point";
 import { WKTRepresentable } from "./WKTRepresentable";
 
 export interface Geometry extends WKTRepresentable {
@@ -8,4 +10,7 @@ export interface Geometry extends WKTRepresentable {
     setSRID(srid: number): void;
     getGeometryType(): string;
     equals(other: Geometry): boolean;
+    getCoordinateSystem(): CoordinateSystem;
+    clone(): Geometry;
+    contains(point: Point): boolean;
   }
