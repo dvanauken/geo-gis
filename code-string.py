@@ -257,13 +257,15 @@ class CodeString:
 if __name__ == "__main__":
     # Initialize a single paths object for all explorations
     paths = CodeString.explore(".", includeFileContent=False, debug=True)
+    paths.comment("Overview: ")
+    paths.comment("===================================================================================================")
+    paths.comment("This is a TypeScript implementation of:")
+    paths.comment("  OpenGIS® Implementation Standard for Geographic Information");
+    paths.comment("    - Simple feature access - Part 1: Common");
+    paths.comment("  REF/link/url: https://portal.ogc.org/files/?artifact_id=25355");
+    paths.comment("")
     paths.comment("Web Application Structure")
-    paths.comment("===================================================================================================")
-    paths.comment("Note: ")
     paths.comment("---------------------------------------------------------------------------------------------------")
-    paths.comment("This is a TypeScript/Angular project structure explorer")
-    paths.comment("It will show the project structure while excluding common build and dependency directories")
-    paths.comment("===================================================================================================")
     paths.include("**/*") \
         .exclude("__pycache__/**") \
         .exclude("node_modules/**") \
@@ -279,9 +281,11 @@ if __name__ == "__main__":
     paths = CodeString.explore(".", includeFileContent=True, debug=True)
     paths.comment("") # Add blank line
     paths.comment("TypeScript Source Files")
-    paths.comment("===================================================================================================")
+    paths.comment("---------------------------------------------------------------------------------------------------")
     paths.include("src/**/*.ts") \
         .include("src/**/*.tsx") \
+        .exclude("test/**/*") \
+        .exclude("src/assets/*") \
         .exclude("src/**/*.spec.ts") \
         .exclude("src/**/*.test.ts") \
         .exclude("src/**/*.spec.tsx") \
@@ -291,7 +295,7 @@ if __name__ == "__main__":
     paths = CodeString.explore(".", includeFileContent=True, debug=True)
     paths.comment("") # Add blank line
     paths.comment("Configuration Files")
-    paths.comment("===================================================================================================")
+    paths.comment("---------------------------------------------------------------------------------------------------")
     paths.include("*.json") \
         .include("*.js") \
         .include("*.env") \
@@ -304,29 +308,7 @@ if __name__ == "__main__":
         .include(".prettierrc.*") \
         .include("karma.conf.js") \
         .include("jest.config.*") \
+        .include("vitest-config.ts.*") \
         .generate()
 
 
-    paths = CodeString.explore(".", includeFileContent=True, debug=True)
-    paths.comment("") # Add blank line
-    paths.comment("Styling Files")
-    paths.comment("===================================================================================================")
-    paths.include("src/**/*.scss") \
-        .include("src/**/*.css") \
-        .include("src/**/*.less") \
-        .include("src/**/*.sass") \
-        .exclude("*.css.map") \
-        .generate()
-
-    # Test files (optional, commented out by default)
-    """
-    paths.comment("") # Add blank line
-    paths.comment("Test Files")
-    paths.comment("===================================================================================================")
-    paths.include("src/**/*.spec.ts") \
-        .include("src/**/*.test.ts") \
-        .include("src/**/*.spec.tsx") \
-        .include("src/**/*.test.tsx") \
-        .include("src/**/*.e2e-spec.ts") \
-        .generate()
-    """

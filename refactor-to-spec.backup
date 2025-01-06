@@ -1,0 +1,261 @@
+# Configuration
+$CONFIG = @{
+    RootDir = "src"
+    Dirs = @(
+        "geometry/interfaces",
+        "geometry/base",
+        "geometry/curves",
+        "geometry/surfaces",
+        "geometry/collections",
+        "reference"
+    )
+}
+
+# Class definitions and their metadata
+    $CLASS_DEFS = @{
+    # Interfaces
+    "geometry/interfaces/IGeometry" = @{
+        Type = "interface"
+        Description = "Base geometry interface"
+        Has = @("SpatialReferenceSystem", "MeasureReferenceSystem")
+    }
+    "geometry/interfaces/ISpatialReferenced" = @{
+        Type = "interface"
+        Description = "Interface for spatial reference system properties"
+    }
+    "geometry/interfaces/IMeasureReferenced" = @{
+        Type = "interface"
+        Description = "Interface for measure reference system properties"
+    }
+    "geometry/interfaces/IPoint" = @{
+        Type = "interface"
+        Description = "Single coordinate location"
+        Extends = "IGeometry"
+    }
+    "geometry/interfaces/ICurve" = @{
+        Type = "interface"
+        Description = "1-dimensional geometry"
+        Extends = "IGeometry"
+    }
+    "geometry/interfaces/ISurface" = @{
+        Type = "interface"
+        Description = "2-dimensional geometry"
+        Extends = "IGeometry"
+    }
+    "geometry/interfaces/IGeometryCollection" = @{
+        Type = "interface"
+        Description = "Collection of geometries"
+        Extends = "IGeometry"
+    }
+
+    # Base Classes
+    "geometry/base/Geometry" = @{
+        Type = "class"
+        IsAbstract = $true
+        Implements = @("IGeometry", "ISpatialReferenced", "IMeasureReferenced")
+        Has = @("SpatialReferenceSystem", "MeasureReferenceSystem")
+    }
+    "geometry/base/Point" = @{
+        Type = "class"
+        Extends = "Geometry"
+        Implements = @("IPoint")
+        UsedBy = @("LineString")
+    }
+
+    # Curves
+    "geometry/curves/Curve" = @{
+        Type = "class"
+        IsAbstract = $true
+        Extends = "Geometry"
+        Implements = @("ICurve")
+    }
+    "geometry/curves/LineString" = @{
+        Type = "class"
+        Extends = "Curve"
+        Has = @("Point[]")  # as vertices
+    }
+    "geometry/curves/Line" = @{
+        Type = "class"
+        Extends = "LineString"
+        Has = @("Point[2]")  # exactly 2 points
+    }
+    "geometry/curves/LinearRing" = @{
+        Type = "class"
+        Extends = "LineString"
+        Has = @("Point[]")  # where first == last
+        UsedBy = @("Polygon")
+    }
+
+    # Surfaces
+    "geometry/surfaces/Surface" = @{
+        Type = "class"
+        IsAbstract = $true
+        Extends = "Geometry"
+        Implements = @("ISurface")
+    }
+    "geometry/surfaces/Polygon" = @{
+        Type = "class"
+        Extends = "Surface"
+        Has = @("LinearRing", "LinearRing[]")  # exterior and interior rings
+        UsedBy = @("PolyhedralSurface")
+    }
+    "geometry/surfaces/Triangle" = @{
+        Type = "class"
+        Extends = "Polygon"
+        Has = @("Point[3]")  # exactly 3 points
+        UsedBy = @("TIN")
+    }
+    "geometry/surfaces/PolyhedralSurface" = @{
+        Type = "class"
+        Extends = "Surface"
+        Has = @("Polygon[]")  # as patches
+    }
+    "geometry/surfaces/TIN" = @{
+        Type = "class"
+        Extends = "Surface"
+        Has = @("Triangle[]")  # as patches
+    }
+
+    # Collections
+    "geometry/collections/GeometryCollection" = @{
+        Type = "class"
+        Extends = "Geometry"
+        Implements = @("IGeometryCollection")
+        Has = @("Geometry[]")
+    }
+    "geometry/collections/MultiSurface" = @{
+        Type = "class"
+        Extends = "GeometryCollection"
+        Has = @("Surface[]")
+    }
+    "geometry/collections/MultiPolygon" = @{
+        Type = "class"
+        Extends = "MultiSurface"
+        Has = @("Polygon[]")
+    }
+    "geometry/collections/MultiCurve" = @{
+        Type = "class"
+        Extends = "GeometryCollection"
+        Has = @("Curve[]")
+    }
+    "geometry/collections/MultiLineString" = @{
+        Type = "class"
+        Extends = "MultiCurve"
+        Has = @("LineString[]")
+    }
+    "geometry/collections/MultiPoint" = @{
+        Type = "class"
+        Extends = "GeometryCollection"
+        Has = @("Point[]")
+    }
+
+    # Reference Systems
+    "reference/SpatialReferenceSystem" = @{
+        Type = "class"
+        Description = "Spatial reference system"
+        UsedBy = @("Geometry")
+    }
+    "reference/MeasureReferenceSystem" = @{
+        Type = "class"
+        Description = "Measure reference system"
+        UsedBy = @("Geometry")
+    }
+}
+
+# Template for class/interface generation
+function Get-ClassTemplate {
+    param (
+        [string]$filepath,
+        [string]$className,
+        [string]$implements = "",
+        [string]$extends = "",
+        [string]$isAbstract = "",
+        [string]$props = "",
+        [string]$constructs = ""
+    )
+@"
+/**
+ * File: $filepath
+ * Generated from OpenGIS specification
+ */
+
+$($implements -split ',' | ForEach-Object { if($_ -ne '') {"import { $_ } from '../interfaces/$_';"} })
+$($extends -split ',' | ForEach-Object { if($_ -ne '') {"import { $_ } from './$_';"} })
+
+export ${isAbstract}class $className${extends}${implements} {
+    $props
+
+    constructor($constructs) {}
+
+    // Standard methods
+    equals(other: $className): boolean {
+        throw new Error("Method not implemented.");
+    }
+
+    clone(): $className {
+        throw new Error("Method not implemented.");
+    }
+
+    toString(): string {
+        throw new Error("Method not implemented.");
+    }
+
+    // OpenGIS required methods
+    validate(): string[] {
+        throw new Error("Method not implemented.");
+    }
+
+    asWKT(): string {
+        throw new Error("Method not implemented.");
+    }
+
+    static fromWKT(wkt: string): $className {
+        throw new Error("Method not implemented.");
+    }
+
+    isEmpty(): boolean {
+        throw new Error("Method not implemented.");
+    }
+
+    getGeometryType(): string {
+        throw new Error("Method not implemented.");
+    }
+}
+"@
+}
+
+# Directory management functions
+function Remove-ExistingStructure {
+    if (Test-Path $CONFIG.RootDir) {
+        Write-Host "Removing existing $($CONFIG.RootDir) directory..."
+        Remove-Item -LiteralPath $CONFIG.RootDir -Force -Recurse -ErrorAction SilentlyContinue
+        if ($?) {
+            Write-Host "Successfully removed $($CONFIG.RootDir) directory" -ForegroundColor Green
+        } else {
+            Write-Host "Failed to remove $($CONFIG.RootDir) directory" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "No existing $($CONFIG.RootDir) directory found" -ForegroundColor Yellow
+    }
+}
+
+function New-DirectoryStructure {
+    foreach ($dir in $CONFIG.Dirs) {
+        $path = Join-Path $CONFIG.RootDir $dir
+        New-Item -Path $path -ItemType Directory -Force | Out-Null
+        Write-Host "Created directory: $path" -ForegroundColor Green
+    }
+}
+
+# Main execution
+Remove-ExistingStructure
+New-DirectoryStructure
+
+# Generate class files
+foreach ($classDef in $CLASS_DEFS.Keys) {
+    $def = $CLASS_DEFS[$classDef]
+    $template = Get-ClassTemplate @def
+    $filepath = "$($CONFIG.RootDir)/$classDef.ts"
+    New-Item -Path $filepath -ItemType File -Force -Value $template | Out-Null
+    Write-Host "Generated file: $filepath" -ForegroundColor Green
+}
