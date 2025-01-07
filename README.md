@@ -1,4 +1,227 @@
+# Main Geometry Hierarchy
+```
+Geometry (abstract base class)
+├── Point
+├── Curve (abstract)
+│   ├── LineString
+│   │   └── LinearRing
+├── Surface (abstract)
+│   ├── Polygon
+│   │   └── Triangle
+│   └── PolyhedralSurface
+│       └── TIN
+└── GeometryCollection<T extends Geometry>
+    ├── MultiPoint
+    ├── MultiCurve<T extends Curve>
+    │   └── MultiLineString
+    ├── MultiSurface
+    │   └── MultiPolygon
+    └── GeometryCollection (generic collections)
+```
 
+## Key relationships:
+
+### Point-based:
+
+
+Point → Geometry
+MultiPoint → GeometryCollection<Point>
+
+
+### Curve-based:
+
+
+Curve → Geometry
+LineString → Curve
+LinearRing → LineString
+MultiCurve<T> → GeometryCollection<T>
+MultiLineString → MultiCurve<LineString>
+
+
+### Surface-based:
+
+
+Surface → Geometry
+Polygon → Surface
+Triangle → Polygon
+PolyhedralSurface → Surface
+TIN → PolyhedralSurface
+MultiSurface → GeometryCollection<Surface>
+MultiPolygon → GeometryCollection<Polygon>
+
+### Important notes:
+
+All geometries ultimately inherit from the abstract Geometry base class
+Collection classes use generics to maintain type safety
+Some classes (like Surface and Curve) are abstract and serve as base classes for more specific implementations
+The reference system hierarchy is separate from the geometry hierarchy
+
+
+<hr>
+
+Geometry (Base abstract class)
+
+```typescript
+abstract class Geometry {
+    // Core methods
+    abstract geometryType(): string
+    abstract isEmpty(): boolean
+    abstract boundary(): Geometry
+    
+    // Base geometry methods that can be overridden
+    envelope(): Geometry
+    equals(another: Geometry): boolean
+    asText(): string 
+    
+    // Spatial Analysis placeholders
+    // dimension(): Integer
+    // coordinateDimension(): Integer
+    // spatialDimension(): Integer
+    // SRID(): Integer
+    // asBinary(): Binary
+    // isSimple(): Boolean
+    // is3D(): Boolean
+    // isMeasured(): Boolean
+    
+    // Spatial relationship placeholders
+    // disjoint(another: Geometry): Boolean
+    // intersects(another: Geometry): Boolean
+    // touches(another: Geometry): Boolean
+    // crosses(another: Geometry): Boolean
+    // within(another: Geometry): Boolean
+    // contains(another: Geometry): Boolean
+    // overlaps(another: Geometry): Boolean
+    // relate(another: Geometry, matrix: String): Boolean
+    // locateAlong(mValue: Double): Geometry
+    // locateBetween(mStart: Double, mEnd: Double): Geometry
+    
+    // Analysis placeholders
+    // distance(another: Geometry): Distance
+    // buffer(distance: Distance): Geometry
+    // convexHull(): Geometry
+    // intersection(another: Geometry): Geometry
+    // union(another: Geometry): Geometry
+    // difference(another: Geometry): Geometry
+    // symDifference(another: Geometry): Geometry
+}
+```
+
+Curve (Abstract class extending Geometry)
+
+```typescript
+abstract class Curve extends Geometry {
+    // New abstract methods
+    abstract length(): number
+    abstract startPoint(): Point
+    abstract endPoint(): Point
+    
+    // New concrete methods
+    isClosed(): boolean
+    isRing(): boolean
+    
+    // Overrides from Geometry
+    geometryType(): string  // returns 'CURVE'
+    boundary(): Geometry
+    isSimple(): boolean
+    
+    // Additional utility methods introduced
+    contains(point: Point): boolean
+    distanceToPoint(point: Point): number
+    hasSelfIntersections(): boolean
+    isContinuous(): boolean
+    isCounterClockwise(): boolean
+    interpolatePoint(distance: number): Point
+}
+```
+
+Surface (Abstract class extending Geometry)
+
+```typescript
+abstract class Surface extends Geometry {
+    // New abstract methods
+    abstract area(): number
+    abstract pointOnSurface(): Point
+    abstract centroid(): Point
+    abstract boundary(): MultiCurve
+    
+    // New concrete methods
+    isRegular(): boolean
+    isPlanar(): boolean
+    hasInteriorRings(): boolean
+    contains(point: Point): boolean
+    
+    // Protected helper methods introduced
+    protected isPointOnBoundary(point: Point): boolean
+    protected isPointInInterior(point: Point): boolean
+    
+    // Overrides from Geometry
+    geometryType(): string  // returns 'SURFACE'
+    isEmpty(): boolean
+    isSimple(): boolean  // returns true by default
+}
+```
+
+MultiCurve (Abstract class extending GeometryCollection<Curve>)
+
+```typescript
+abstract class MultiCurve<T extends Curve = Curve> extends GeometryCollection<T> {
+    // New abstract/virtual methods
+    isClosed(): boolean
+    length(): number
+    
+    // Collection-specific methods
+    curveN(n: number): T
+    numCurves(): number
+    addCurve(curve: T): void
+    
+    // Overrides from GeometryCollection
+    geometryType(): string  // returns 'MULTICURVE'
+    boundary(): Geometry
+    isSimple(): boolean
+    
+    // Protected helper methods
+    protected isPointOnBoundary(point: Point, curve: T): boolean
+}
+```
+
+GeometryCollection<T extends Geometry> (Abstract base for collections)
+
+```typescript
+abstract class GeometryCollection<T extends Geometry> {
+    // Core collection methods
+    numGeometries(): number
+    geometryN(n: number): T
+    
+    // Collection manipulation
+    add(geometry: T): void
+    remove(geometry: T): boolean
+    clear(): void
+    
+    // Query methods
+    contains(geometry: T): boolean
+    getGeometriesOfType(geometryType: string): T[]
+    
+    // Overrides from Geometry
+    geometryType(): string  // returns 'GEOMETRYCOLLECTION'
+    isEmpty(): boolean
+    equals(another: Geometry): boolean
+    boundary(): Geometry
+}
+```
+These abstract classes form the foundation of the geometric type system, with each adding its own set of operations and requirements that derived classes must implement. Each level in the hierarchy adds more specialized behavior while maintaining the contract established by its parent classes.
+The most significant aspects are:
+
+- Geometry provides the base operations all geometric objects must support
+- Curve adds methods specific to linear features
+- Surface adds methods for areal features
+- GeometryCollection provides collection - management functionality
+- MultiCurve specializes collections for curve-type geometries
+
+
+
+
+
+### Diagram
 
 ![Class Diagram](class-diagram.png)
 
@@ -19,9 +242,9 @@
 - **TIN**: A specialized form of `PolyhedralSurface` that uses triangular facets.
 - **GeometryCollection**: Generic class for managing collections of geometry objects.
 
+# Title
 
-
-- **Geometry**
+### **Geometry**
   | Modifiers | Return Type | Method Name    | Method Parameters | Description                          |
   |-----------|-------------|----------------|-------------------|--------------------------------------|
   | abstract  | string      | geometryType   |                   | Returns the geometry type as a string. |
@@ -30,7 +253,7 @@
   |           | boolean     | equals         | Geometry another  | Checks if another geometry is equal. |
   |           | string      | asText         |                   | Returns the WKT representation.      |
 
-- **Curve**
+### **Curve**
   | Modifiers | Return Type | Method Name       | Method Parameters | Description                               |
   |-----------|-------------|-------------------|-------------------|-------------------------------------------|
   | abstract  | number      | length            |                   | Returns the curve's length.               |
@@ -46,7 +269,7 @@
   |           | boolean     | isCounterClockwise |                  | Checks orientation of the curve.         |
   |           | Point       | interpolatePoint  | number distance   | Interpolates a point along the curve.    |
 
-- **Point**
+### **Point**
   | Modifiers | Return Type | Method Name   | Method Parameters | Description                             |
   |-----------|-------------|---------------|-------------------|-----------------------------------------|
   | private   | number      | x             |                   | Gets the x-coordinate.                  |
@@ -65,7 +288,7 @@
   |           | number      | distanceBetweenPoints | Point p1, Point p2| Computes distance between two points.   |
   |           | boolean     | segmentsIntersect     | Point p1, Point p2, Point p3, Point p4 | Checks if two segments intersect. |
 
-- **LinearRing**
+### **LinearRing**
   | Modifiers | Return Type | Method Name           | Method Parameters | Description                            |
   |-----------|-------------|-----------------------|-------------------|----------------------------------------|
   |           | boolean     | isValid               |                   | Validates the linear ring construction.|
@@ -74,7 +297,7 @@
   |           | boolean     | hasValidClosure       |                   | Checks if ring is properly closed.     |
   |           | boolean     | hasNoSelfIntersections|                   | Checks for self-intersections.         |
 
-- **MultiPoint**
+### **MultiPoint**
   | Modifiers | Return Type | Method Name        | Method Parameters | Description                             |
   |-----------|-------------|--------------------|-------------------|-----------------------------------------|
   |           | number[][]  | coordinates        |                   | Returns coordinates of all points.      |
@@ -83,7 +306,7 @@
   |           | MultiPoint  | clone              |                   | Clones the MultiPoint.                  |
   |           | number      | distance           | Geometry another  | Computes distance to another geometry.  |
 
-- **MultiLineString**
+### **MultiLineString**
   | Modifiers | Return Type | Method Name       | Method Parameters  | Description                             |
   |-----------|-------------|-------------------|--------------------|-----------------------------------------|
   |           | void        | addLineString     | LineString lineString | Adds a LineString to the collection. |
@@ -91,7 +314,7 @@
   |           | number      | numLineStrings    |                    | Returns the number of LineStrings.      |
   |           | number      | length            |                    | Computes total length of all LineStrings. |
 
-- **MultiCurve**
+### **MultiCurve**
   | Modifiers | Return Type | Method Name       | Method Parameters | Description                               |
   |-----------|-------------|-------------------|-------------------|-------------------------------------------|
   |           | void        | addCurve          | Curve curve       | Adds a curve to the collection.           |
@@ -99,7 +322,7 @@
   |           | number      | numCurves         |                   | Returns the number of curves in the collection. |
   |           | number      | length            |                   | Computes total length of all curves.     |
 
-- **Polygon**
+### **Polygon**
   | Modifiers | Return Type | Method Name       | Method Parameters         | Description                            |
   |-----------|-------------|-------------------|---------------------------|----------------------------------------|
   |           | LinearRing  | exteriorRing      |                           | Retrieves the exterior ring.           |
@@ -111,7 +334,7 @@
   |           | void        | setExteriorRing   | LinearRing ring           | Sets the exterior ring.                |
   |           | void        | addInteriorRing   | LinearRing ring           | Adds an interior ring.                 |
 
-- **MultiPolygon**
+### **MultiPolygon**
   | Modifiers | Return Type | Method Name       | Method Parameters | Description                                |
   |-----------|-------------|-------------------|-------------------|--------------------------------------------|
   |           | number      | area              |                   | Computes the total area of all polygons.   |
@@ -121,7 +344,7 @@
   |           | Polygon     | polygonN          | number n          | Retrieves the nth polygon.                 |
   |           | number      | numPolygons       |                   | Returns the number of polygons.           |
 
-- **Triangle**
+### **Triangle**
   | Modifiers | Return Type | Method Name       | Method Parameters           | Description                            |
   |-----------|-------------|-------------------|-----------------------------|----------------------------------------|
   |           | Point[]     | getVertices       |                             | Retrieves the vertices of the triangle. |
@@ -133,7 +356,7 @@
   |           | number[]    | getAngles         |                             | Computes the angles of the triangle.   |
   |           | void        | addInteriorRing   | LinearRing ring             | Prevents adding interior rings to triangles. |
 
-- **Surface**
+### **Surface**
   | Modifiers | Return Type | Method Name           | Method Parameters  | Description                                 |
   |-----------|-------------|-----------------------|--------------------|---------------------------------------------|
   | abstract  | number      | area                  |                    | Calculates the surface area.                |
@@ -149,7 +372,7 @@
   |           | LineString  | createRayFromPoint    | Point point        | Creates a ray from a point for testing.     |
   |           | boolean     | rayIntersectsCurve    | LineString ray, Curve curve | Checks if a ray intersects a curve.   |
 
-- **PolyhedralSurface**
+### **PolyhedralSurface**
   | Modifiers | Return Type | Method Name       | Method Parameters  | Description                                |
   |-----------|-------------|-------------------|--------------------|--------------------------------------------|
   |           | number      | numPatches        |                    | Returns the number of polygon patches.     |
@@ -160,7 +383,7 @@
   |           | number      | getAspect         | Triangle triangle  | Placeholder for aspect ratio calculation.  |
   |           | number      | interpolateHeight | Point point        | Placeholder for height interpolation.      |
 
-- **TIN**
+### **TIN**
   | Modifiers | Return Type | Method Name           | Method Parameters  | Description                                |
   |-----------|-------------|-----------------------|--------------------|--------------------------------------------|
   |           | number      | numTriangles          |                    | Returns the number of triangles.           |
@@ -169,7 +392,7 @@
   |           | Triangle[]  | getNeighbors          | Triangle triangle  | Finds neighboring triangles.               |
   |           | Triangle    | getTriangleContaining | Point point        | Finds the triangle containing a point.     |
 
-- **GeometryCollection**
+### **GeometryCollection**
   | Modifiers | Return Type        | Method Name    | Method Parameters | Description                                      |
   |-----------|--------------------|----------------|-------------------|--------------------------------------------------|
   |           | void               | add            | T geometry        | Adds a geometry to the collection.               |

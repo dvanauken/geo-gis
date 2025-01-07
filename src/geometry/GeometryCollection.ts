@@ -1,5 +1,6 @@
 // GeometryCollection.ts
 import { Geometry } from "./Geometry";
+import { Point } from "./Point";
 
 export class GeometryCollection<T extends Geometry> extends Geometry {
     items: T[];
@@ -45,11 +46,73 @@ export class GeometryCollection<T extends Geometry> extends Geometry {
         return this.items[n - 1];  // Convert from 1-based to 0-based indexing
     }
 
-    // Inherited methods that need specific implementation
+    // // Inherited methods that need specific implementation
+    // boundary(): Geometry {
+    //     // The boundary of a geometry collection is the boundary of 
+    //     // the set theoretic union of its elements
+    //     throw new Error("Method not implemented");
+    // }
+
+
     boundary(): Geometry {
-        // The boundary of a geometry collection is the boundary of 
-        // the set theoretic union of its elements
-        throw new Error("Method not implemented");
+        if (this.isEmpty()) {
+            return new Point(); // Empty point for empty collection
+        }
+
+        // Get boundaries of all elements
+        const boundaries = this.items.map(item => item.boundary());
+
+        // Remove empty boundaries
+        const nonEmptyBoundaries = boundaries.filter(b => !b.isEmpty());
+
+        if (nonEmptyBoundaries.length === 0) {
+            return new Point(); // Empty point if no non-empty boundaries
+        }
+
+        // If only one boundary, return it
+        if (nonEmptyBoundaries.length === 1) {
+            return nonEmptyBoundaries[0];
+        }
+
+        // For multiple boundaries, create a composite boundary
+        const compositeBoundary = new GeometryCollection<Geometry>();
+        nonEmptyBoundaries.forEach(boundary => {
+            if (boundary instanceof GeometryCollection) {
+                // If boundary is already a collection, add its elements
+                for (let i = 1; i <= boundary.numGeometries(); i++) {
+                    compositeBoundary.add(boundary.geometryN(i));
+                }
+            } else {
+                compositeBoundary.add(boundary);
+            }
+        });
+
+        // Now handle overlapping parts by counting occurrences
+        // This is a simplified approach - a full implementation would need
+        // more sophisticated geometric operations
+        const uniqueBoundaries = new Map<string, { geometry: Geometry; count: number }>();
+
+        for (let i = 1; i <= compositeBoundary.numGeometries(); i++) {
+            const geom = compositeBoundary.geometryN(i);
+            const key = geom.asText(); // Use WKT as a key for comparison
+            
+            const existing = uniqueBoundaries.get(key);
+            if (existing) {
+                existing.count++;
+            } else {
+                uniqueBoundaries.set(key, { geometry: geom, count: 1 });
+            }
+        }
+
+        // Create final boundary with elements that appear odd number of times
+        const finalBoundary = new GeometryCollection<Geometry>();
+        uniqueBoundaries.forEach(({ geometry, count }) => {
+            if (count % 2 === 1) {
+                finalBoundary.add(geometry);
+            }
+        });
+
+        return finalBoundary;
     }
 
     // isSimple(): boolean {

@@ -5,7 +5,7 @@ import { MultiCurve } from "./MultiCurve";
 import { MultiLineString } from "./MultiLineString";
 import { Geometry } from "./Geometry";
 
-export class Polygon<T extends LinearRing = LinearRing> extends Surface {
+export class Polygon extends Surface {
     protected _exteriorRing: LinearRing;
     protected interiorRings: LinearRing[];
 
@@ -80,13 +80,13 @@ export class Polygon<T extends LinearRing = LinearRing> extends Surface {
 
     // The boundary is the set of closed curves corresponding to all rings
     boundary(): MultiCurve {
-        // const multiLine = new MultiLineString();
-        // // Add exterior ring
-        // multiLine.addLineString(this._exteriorRing);
-        // // Add all interior rings
-        // this.interiorRings.forEach(ring => multiLine.addLineString(ring));
-        // return multiLine;
-        throw new Error("Method not implemented");
+        const multiLine = new MultiLineString();
+        // Add exterior ring
+        multiLine.addLineString(this._exteriorRing);
+        // Add all interior rings
+        this.interiorRings.forEach(ring => multiLine.addLineString(ring));
+        return multiLine;
+        //throw new Error("Method not implemented");
     }
 
     setExteriorRing(ring: LinearRing): void {
