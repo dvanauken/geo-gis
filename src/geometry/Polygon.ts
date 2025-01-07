@@ -1,19 +1,18 @@
-// Polygon.ts
 import { Surface } from "./Surface";
 import { LinearRing } from "./LinearRing";
-import { MultiCurve } from "./MultiCurve";
 import { Point } from "./Point";
-import { Geometry } from "./Geometry";
+import { MultiCurve } from "./MultiCurve";
 import { MultiLineString } from "./MultiLineString";
+import { Geometry } from "./Geometry";
 
-export class Polygon extends Surface {
+export class Polygon<T extends LinearRing = LinearRing> extends Surface {
     protected _exteriorRing: LinearRing;
     protected interiorRings: LinearRing[];
 
-    constructor() {
+    constructor(exteriorRing?: LinearRing, interiorRings: LinearRing[] = []) {
         super();
-        this._exteriorRing = new LinearRing();
-        this.interiorRings = [];
+        this._exteriorRing = exteriorRing ?? new LinearRing();
+        this.interiorRings = interiorRings;
     }
 
     // Override from Geometry
@@ -29,18 +28,15 @@ export class Polygon extends Surface {
         if (!(another instanceof Polygon)) {
             return false;
         }
-
         // Check exterior ring
         if (!this._exteriorRing.equals(another._exteriorRing)) {
             return false;
         }
-
         // Check interior rings (order doesn't matter)
         if (this.interiorRings.length !== another.interiorRings.length) {
             return false;
         }
-
-        return this.interiorRings.every(ring =>
+        return this.interiorRings.every(ring => 
             another.interiorRings.some(otherRing => ring.equals(otherRing))
         );
     }
@@ -58,13 +54,11 @@ export class Polygon extends Surface {
 
     pointOnSurface(): Point {
         // Simple implementation - returns a point guaranteed to be inside
-        // More sophisticated implementations would use centroid with validation
         return this.centroid();
     }
 
     centroid(): Point {
         // Simple centroid calculation for exterior ring
-        // More sophisticated implementation would account for holes
         return this.calculateRingCentroid(this._exteriorRing);
     }
 
@@ -85,33 +79,16 @@ export class Polygon extends Surface {
     }
 
     // The boundary is the set of closed curves corresponding to all rings
-    // Change the boundary method
     boundary(): MultiCurve {
+        // const multiLine = new MultiLineString();
+        // // Add exterior ring
+        // multiLine.addLineString(this._exteriorRing);
+        // // Add all interior rings
+        // this.interiorRings.forEach(ring => multiLine.addLineString(ring));
+        // return multiLine;
         throw new Error("Method not implemented");
     }
 
-    // A polygon is simple if properly formed according to the assertions
-    isSimple(): boolean {
-        // Check if rings are simple
-        if (!this._exteriorRing.isSimple() ||
-            !this.interiorRings.every(ring => ring.isSimple())) {
-            return false;
-        }
-
-        // Check ring orientations
-        if (!this.hasValidRingOrientations()) {
-            return false;
-        }
-
-        // Check for ring intersections
-        if (this.hasRingIntersections()) {
-            return false;
-        }
-
-        return true;
-    }
-
-    // Methods to modify the polygon
     setExteriorRing(ring: LinearRing): void {
         if (!ring.isSimple() || !ring.isClosed()) {
             throw new Error("Exterior ring must be simple and closed");
@@ -134,9 +111,13 @@ export class Polygon extends Surface {
         if (this.isEmpty()) {
             return "POLYGON EMPTY";
         }
-
         const ringToString = (ring: LinearRing) => {
-            return `(${ring.points.map(p => `${p.x()} ${p.y()}`).join(", ")})`;
+            const points = [];
+            for (let i = 1; i <= ring.numPoints(); i++) {
+                const p = ring.pointN(i);
+                points.push(`${p.x()} ${p.y()}`);
+            }
+            return `(${points.join(", ")})`;
         };
 
         const ringsText = [
@@ -149,30 +130,38 @@ export class Polygon extends Surface {
 
     // Helper methods
     private calculateRingArea(ring: LinearRing): number {
-        // Shoelace formula (Surveyor's formula)
         let area = 0;
-        const points = ring.points;
-
-        for (let i = 0; i < points.length - 1; i++) {
-            area += points[i].x() * points[i + 1].y();
-            area -= points[i + 1].x() * points[i].y();
+        const numPoints = ring.numPoints();
+        
+        // Need at least 3 points for area calculation
+        if (numPoints < 4) return 0; // 4 because first = last in a closed ring
+        
+        // Shoelace formula (surveyor's formula)
+        for (let i = 1; i < numPoints; i++) {
+            const p1 = ring.pointN(i);
+            const p2 = ring.pointN(i + 1);
+            area += p1.x() * p2.y() - p2.x() * p1.y();
         }
-
+        
         return area / 2;
     }
 
     private calculateRingCentroid(ring: LinearRing): Point {
-        const points = ring.points;
-        let area = 0;
+        const numPoints = ring.numPoints();
+        if (numPoints < 4) return new Point(0, 0);
+
         let cx = 0;
         let cy = 0;
+        let area = 0;
 
-        for (let i = 0; i < points.length - 1; i++) {
-            const factor = points[i].x() * points[i + 1].y() -
-                points[i + 1].x() * points[i].y();
+        for (let i = 1; i < numPoints; i++) {
+            const p1 = ring.pointN(i);
+            const p2 = ring.pointN(i + 1);
+            const factor = p1.x() * p2.y() - p2.x() * p1.y();
+            
+            cx += (p1.x() + p2.x()) * factor;
+            cy += (p1.y() + p2.y()) * factor;
             area += factor;
-            cx += (points[i].x() + points[i + 1].x()) * factor;
-            cy += (points[i].y() + points[i + 1].y()) * factor;
         }
 
         area /= 2;
@@ -182,51 +171,28 @@ export class Polygon extends Surface {
         return new Point(cx, cy);
     }
 
-    private hasValidRingOrientations(): boolean {
-        // Exterior ring should be counterclockwise
-        if (!this._exteriorRing.isCounterClockwise()) {
-            return false;
-        }
-
-        // Interior rings should be clockwise
-        return this.interiorRings.every(ring => ring.isClockwise());
-    }
-
-    private hasRingIntersections(): boolean {
-        // Check intersections between all pairs of rings
-        // Return true if any invalid intersections found
-
-        // Check exterior ring with all interior rings
-        for (const ring of this.interiorRings) {
-            if (this.ringsIntersect(this._exteriorRing, ring)) {
-                return true;
-            }
-        }
-
-        // Check interior rings with each other
-        for (let i = 0; i < this.interiorRings.length; i++) {
-            for (let j = i + 1; j < this.interiorRings.length; j++) {
-                if (this.ringsIntersect(
-                    this.interiorRings[i],
-                    this.interiorRings[j]
-                )) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private ringsIntersect(ring1: LinearRing, ring2: LinearRing): boolean {
-        // Simplified intersection check
-        // A complete implementation would need proper segment intersection testing
-        return false; // Placeholder
-    }
-
     private isRingInside(inner: LinearRing, outer: LinearRing): boolean {
-        // Check if all points of inner ring are inside outer ring
-        // Simplified - a complete implementation would need proper containment testing
-        return true; // Placeholder
+        // Check if at least one point of inner ring is inside outer ring
+        // This is a simplified check - a complete implementation would need
+        // more sophisticated containment testing
+        const testPoint = inner.pointN(1);
+        return this.isPointInRing(testPoint, outer);
+    }
+
+    private isPointInRing(point: Point, ring: LinearRing): boolean {
+        let inside = false;
+        const numPoints = ring.numPoints();
+        
+        for (let i = 1, j = numPoints - 1; i < numPoints; j = i++) {
+            const pi = ring.pointN(i);
+            const pj = ring.pointN(j);
+            
+            if (((pi.y() > point.y()) !== (pj.y() > point.y())) &&
+                (point.x() < (pj.x() - pi.x()) * (point.y() - pi.y()) / (pj.y() - pi.y()) + pi.x())) {
+                inside = !inside;
+            }
+        }
+        
+        return inside;
     }
 }
