@@ -8,4 +8,7 @@ export class MultiSurface extends GeometryCollection<Surface> {
     }
 
     // Additional methods specific to handling surfaces can be added here
+    //+ area() : Area
+    //+ centroid() : Point
+    //+ pointOnSurface() : Point
 }
